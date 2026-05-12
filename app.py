@@ -44,19 +44,23 @@ with col4:
     b_r = st.number_input("Battery Price / بیٹری کی قیمت (Rs)", min_value=0, value=45000)
     sys_vol_choice = st.selectbox("Battery System / بیٹری سسٹم", ["Auto Select", "12V (1 Battery)", "24V (2 Batteries)", "48V (4 Batteries)"])
 
-# --- CHARGER CONTROLLER (Admin Control for Simple Inverters) ---
+# --- CHARGER AMPS LOGIC (Admin Control) ---
 ctrl_price = 0
 ctrl_name = ""
+ctrl_amps = ""
+
 if "Car" in inv_type:
     st.markdown("---")
-    st.info("ℹ️ Simple Inverter ke liye Charger Controller lazmi hai")
-    ctrl_choice = st.selectbox("Select Charger / چارجر منتخب کریں", ["PWM Charger (BMW Style)", "MPPT Charger (Best Performance)"])
-    if "PWM" in ctrl_choice:
-        ctrl_price = st.number_input("PWM Price / قیمت", value=6500)
-        ctrl_name = "PWM Charger"
-    else:
-        ctrl_price = st.number_input("MPPT Price / قیمت", value=14500)
-        ctrl_name = "MPPT Charger"
+    st.info("ℹ️ Charger Controller Settings")
+    c1, c2 = st.columns(2)
+    with c1:
+        ctrl_choice = st.selectbox("Charger Type", ["PWM (BMW Style)", "MPPT (High Efficiency)"])
+    with c2:
+        # User selection for Amps
+        amp_choice = st.selectbox("Select Amps", ["30A", "40A", "50A", "60A", "80A", "100A", "120A"])
+    
+    ctrl_price = st.number_input(f"Enter Price for {amp_choice} {ctrl_choice}", value=8000 if "PWM" in ctrl_choice else 16000)
+    ctrl_name = f"{ctrl_choice} ({amp_choice})"
 
 # --- CALCULATION ---
 if st.button("Generate Final Report | رپورٹ تیار کریں", use_container_width=True):
@@ -65,7 +69,6 @@ if st.button("Generate Final Report | رپورٹ تیار کریں", use_contain
     total_w = normal_load + heavy_load
     kw = total_w / 1000
     
-    # Volts logic
     if sys_vol_choice == "Auto Select":
         vol = 12 if kw <= 1.2 else (24 if kw <= 2.8 else 48)
     else:
@@ -73,31 +76,33 @@ if st.button("Generate Final Report | رپورٹ تیار کریں", use_contain
     
     n_b = vol // 12
     n_p = math.ceil((total_w * 1.30) / p_w)
+    
+    # Recommendation for Amps
+    # Formula: (Total Watts / Battery Volts) + Safety Margin
+    rec_amps = math.ceil((n_p * p_w) / vol)
+    
     usable_storage = (b_ah * vol * 0.8)
-    
-    # Backup estimation
     backup_light = usable_storage / normal_load if normal_load > 0 else 0
-    heavy_night = normal_load + (fr_q * (fr_w * 0.5)) + (ac_q * (ac_w * 0.6))
-    backup_heavy = usable_storage / heavy_night if heavy_night > 0 else 0
     
-    # Display Results
+    # Results Display
     st.markdown(f"### 📊 Total Load Assessment: {int(total_w)}W ({kw:.2f} kW)")
-    st.success(f"🏠 **Normal Load (Basic): {int(normal_load)} Watts**")
     
+    # Show Recommendation if using Simple Inverter
+    if "Car" in inv_type:
+        st.warning(f"💡 **Recommended Charger Amps:** Minimum **{rec_amps}A** (آپ کے پاس {n_p} پلیٹیں ہیں)")
+
     r1, r2 = st.columns(2)
     with r1:
         st.info(f"**Inverter:** Rs. {inv_price:,.0f}")
         if ctrl_price > 0:
-            st.warning(f"**{ctrl_name}:** Rs. {ctrl_price:,.0f}")
+            st.warning(f"**Charger:** {ctrl_name}\n\nRs. {ctrl_price:,.0f}")
         st.success(f"**Plates ({n_p} Nos):** Rs. {n_p * p_r:,.0f}")
     with r2:
         st.info(f"**Batteries ({n_b} Nos):** Rs. {n_b * b_r:,.0f}")
-        st.warning(f"**Backup (Fans/Lights):** {backup_light:.1f} Hr")
-        st.error(f"**Backup (Full Load):** {backup_heavy:.1f} Hr")
+        st.warning(f"**Night Backup:** ~{backup_light:.1f} Hours")
     
     st.divider()
     grand_total = (n_p * p_r) + (n_b * b_r) + inv_price + ctrl_price
     st.error(f"## Grand Total / کل خرچہ: Rs. {grand_total:,.0f}")
-    st.markdown("<p style='text-align: center; color: #fbbf24; font-weight: bold;'>Smart Choice with NABA SOLAR SOLUTIONS</p>", unsafe_allow_html=True)
 
 st.markdown("<p style='text-align: center; color: gray; font-size: 10px;'>NABA SOLUTIONS | PINCH BRAND © 2026</p>", unsafe_allow_html=True)
