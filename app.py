@@ -5,8 +5,11 @@ import math
 st.set_page_config(page_title="NABA Solar Tech", page_icon="☀️")
 
 # Branding Header
-st.markdown("<h1 style='text-align: center; color: #fbbf24;'>NABA SOLAR SOLUTIONS</h1>", unsafe_allow_html=True)
-st.markdown("<h3 style='text-align: center; color: #94a3b8;'>Solar Load Calculator | سولر لوڈ کیلکولیٹر</h3>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; color: #fbbf24; margin-bottom: 0;'>NABA SOLAR SOLUTIONS</h1>", unsafe_allow_html=True)
+# SLOGANS ADDED HERE
+st.markdown("<p style='text-align: center; color: #4ade80; font-size: 18px; font-weight: bold; margin-top: 0;'>Powered by NABA – Energy for Generations</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #94a3b8; font-style: italic;'>بجلی کے بھاری بلوں سے نجات، اب آپ کے ہاتھ</p>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #ffffff; background-color: #1e293b; padding: 10px; border-radius: 5px;'>Solar Load Calculator | سولر لوڈ کیلکولیٹر</h3>", unsafe_allow_html=True)
 st.divider()
 
 # --- SECTION 1: APPLIANCES ---
@@ -43,14 +46,11 @@ with col4:
     b_r = st.number_input("Battery Price / بیٹری کی قیمت (Rs)", min_value=0, value=45000, key="bat_r")
 
 # --- CALCULATION LOGIC ---
-if st.button("Generate Report | رپورٹ تیار کریں", use_container_width=True):
-    # Base Loads
-    motor_load = (m_hp * m_q * 746)
-    fridge_load = (fr_q * fr_w)
-    ac_load = (ac_q * ac_w)
-    fans_bulbs_load = (f_p*100) + (f_a*65) + (l_o*60) + (l_l*12)
-    
-    total_w = fans_bulbs_load + fridge_load + ac_load + motor_load
+if st.button("Generate Technical Report | رپورٹ تیار کریں", use_container_width=True):
+    # Calculations
+    normal_load_w = (f_p*100) + (f_a*65) + (l_o*60) + (l_l*12)
+    heavy_load_w = (m_hp * m_q * 746) + (fr_q * fr_w) + (ac_q * ac_w)
+    total_w = normal_load_w + heavy_load_w
     kw = total_w / 1000
     
     # Inverter Logic
@@ -64,19 +64,17 @@ if st.button("Generate Report | رپورٹ تیار کریں", use_container_wid
         s_kw, vol, n_b, conn = math.ceil(kw + 2), 48, 8, "2 Strings (Parallel - 48V)"
     
     n_p = math.ceil((total_w * 1.30) / p_w)
+    usable_storage = (b_ah * vol * 0.8)
     
     # Backup Logic
-    usable_storage = (b_ah * vol * 0.8) # 80% Depth of discharge
-    
-    # Option 1: Light Load (Only Fans/Bulbs)
-    backup_light = usable_storage / fans_bulbs_load if fans_bulbs_load > 0 else 0
-    
-    # Option 2: Heavy Load (Fans + Fridge + AC) - Motor typically excluded at night
-    heavy_night_load = fans_bulbs_load + (fr_q * (fr_w * 0.5)) + (ac_q * (ac_w * 0.6)) 
+    backup_light = usable_storage / normal_load_w if normal_load_w > 0 else 0
+    heavy_night_load = normal_load_w + (fr_q * (fr_w * 0.5)) + (ac_q * (ac_w * 0.6)) 
     backup_heavy = usable_storage / heavy_night_load if heavy_night_load > 0 else 0
     
     # Results Display
-    st.markdown(f"### 📊 Total Load | کل لوڈ: {int(total_w)}W ({kw:.2f} kW)")
+    st.markdown(f"### 📊 Total System Load | کل لوڈ: {int(total_w)}W ({kw:.2f} kW)")
+    
+    st.success(f"🏠 **Normal Load (Fans/Lights Only): {int(normal_load_w)} Watts**\n\n*(اے سی، فریج اور موٹر کے بغیر لوڈ)*")
     
     r1, r2 = st.columns(2)
     with r1:
@@ -92,11 +90,12 @@ if st.button("Generate Report | رپورٹ تیار کریں", use_container_wid
     
     b_col1, b_col2 = st.columns(2)
     with b_col1:
-        st.warning(f"**Light Load (Fans/Bulbs Only):**\n{backup_light:.1f} Hours / گھنٹے\n*(بغیر فریج اور اے سی کے)*")
+        st.warning(f"**Light Load (Fans/Bulbs Only):**\n{backup_light:.1f} Hours / گھنٹے")
     with b_col2:
-        st.error(f"**Heavy Load (with AC/Fridge):**\n{backup_heavy:.1f} Hours / گھنٹے\n*(فریج اور اے سی کے ساتھ)*")
+        st.error(f"**Heavy Load (with AC/Fridge):**\n{backup_heavy:.1f} Hours / گھنٹے")
         
     st.divider()
     st.error(f"## Grand Total / کل خرچہ: Rs. {(n_p * p_r) + (n_b * b_r):,.0f}")
+    st.markdown("<p style='text-align: center; color: #fbbf24; font-weight: bold;'>Smart Choice for a Brighter Future!</p>", unsafe_allow_html=True)
 
-st.markdown("<p style='text-align: center; color: gray; font-size: 10px;'>NABA SOLUTIONS | PINCH BRAND © 2026</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: gray; font-size: 10px;'>Developed for NABA SOLUTIONS | PINCH BRAND © 2026</p>", unsafe_allow_html=True)
