@@ -15,17 +15,16 @@ st.subheader("1. Appliances Selection | برقی آلات کا انتخاب")
 col1, col2 = st.columns(2)
 
 with col1:
-    f_p = st.number_input("Old Fans / پرانے پنکھے (100W)", min_value=0, value=0)
-    f_a = st.number_input("AC/DC Fans / نئے پنکھے (65W)", min_value=0, value=4)
-    l_l = st.number_input("LED Bulbs / ایل ای ڈی بلب (12W)", min_value=0, value=10)
-    m_q = st.number_input("Motor Quantity / موٹر کی تعداد", min_value=0, value=1)
-    m_hp = st.number_input("Motor Power / موٹر کی پاور (HP)", min_value=0.0, value=1.0, step=0.5)
+    f_p = st.number_input("Old Fans (100W)", min_value=0, value=0)
+    f_a = st.number_input("AC/DC Fans (65W)", min_value=0, value=4)
+    l_l = st.number_input("LED Bulbs (12W)", min_value=0, value=10)
+    m_hp = st.number_input("Motor Power (HP)", min_value=0.0, value=1.0, step=0.5)
 
 with col2:
-    fr_q = st.number_input("Fridge Quantity / فریج کی تعداد", min_value=0, value=1)
-    fr_w = st.number_input("Fridge Watts / فریج کے واٹس", min_value=0, value=500)
-    ac_q = st.number_input("AC Quantity / اے سی کی تعداد", min_value=0, value=0)
-    ac_w = st.number_input("AC Watts / اے سی کے واٹس", min_value=0, value=1500)
+    fr_q = st.number_input("Fridge Quantity", min_value=0, value=1)
+    fr_w = st.number_input("Fridge Watts", min_value=0, value=500)
+    ac_q = st.number_input("AC Quantity", min_value=0, value=0)
+    ac_w = st.number_input("AC Watts", min_value=0, value=1500)
 
 st.divider()
 
@@ -34,75 +33,81 @@ st.subheader("2. System & Rates | سسٹم اور ریٹ")
 col3, col4 = st.columns(2)
 
 with col3:
-    p_w = st.number_input("Plate Watts / پلیٹ کے واٹس", min_value=1, value=585)
-    p_r = st.number_input("Plate Price / پلیٹ کی قیمت (Rs)", min_value=0, value=21000)
-    inv_type = st.radio("Inverter Type / انورٹر کی قسم", ["Hybrid Inverter", "Car/Simple Inverter"], horizontal=True)
-    inv_price = st.number_input("Inverter Price / انورٹر کی قیمت (Rs)", min_value=0, value=65000 if "Hybrid" in inv_type else 12000)
+    p_w = st.number_input("Plate Watts", min_value=1, value=585)
+    p_r = st.number_input("Plate Price (Rs)", min_value=0, value=21000)
+    inv_type = st.radio("Inverter Choice", ["Hybrid Inverter", "Car/Simple Inverter"], horizontal=True)
+    inv_price = st.number_input("Inverter Price (Rs)", min_value=0, value=65000 if "Hybrid" in inv_type else 12000)
 
 with col4:
-    b_ah = st.number_input("Battery Ah / بیٹری کے ایمپئیر", min_value=1, value=200)
-    b_r = st.number_input("Battery Price / بیٹری کی قیمت (Rs)", min_value=0, value=45000)
-    sys_vol_choice = st.selectbox("Battery System / بیٹری سسٹم", ["Auto Select", "12V (1 Battery)", "24V (2 Batteries)", "48V (4 Batteries)"])
+    b_ah = st.number_input("Battery Ah", min_value=1, value=200)
+    b_r = st.number_input("Battery Price (Rs)", min_value=0, value=45000)
+    sys_vol = st.selectbox("Battery System", ["Auto Select", "12V (1 Battery)", "24V (2 Batteries)", "48V (4 Batteries)"])
 
-# --- CHARGER AMPS LOGIC (Admin Control) ---
+# --- NEW: CONNECTION & CHARGER LOGIC ---
 ctrl_price = 0
 ctrl_name = ""
-ctrl_amps = ""
-
 if "Car" in inv_type:
     st.markdown("---")
-    st.info("ℹ️ Charger Controller Settings")
-    c1, c2 = st.columns(2)
-    with c1:
-        ctrl_choice = st.selectbox("Charger Type", ["PWM (BMW Style)", "MPPT (High Efficiency)"])
-    with c2:
-        # User selection for Amps
-        amp_choice = st.selectbox("Select Amps", ["30A", "40A", "50A", "60A", "80A", "100A", "120A"])
+    st.info("ℹ️ Charger Settings (Connection Matters)")
+    cx1, cx2 = st.columns(2)
+    with cx1:
+        conn_type = st.radio("Solar Connection", ["Parallel (High Amps)", "Series (High Volts)"])
+    with cx2:
+        ctrl_choice = st.selectbox("Charger Selection", ["PWM (BMW)", "MPPT"])
+        amp_select = st.selectbox("Charger Amps", ["30A", "40A", "60A", "80A", "100A", "120A"])
     
-    ctrl_price = st.number_input(f"Enter Price for {amp_choice} {ctrl_choice}", value=8000 if "PWM" in ctrl_choice else 16000)
-    ctrl_name = f"{ctrl_choice} ({amp_choice})"
+    ctrl_price = st.number_input(f"Enter Price for {amp_select} {ctrl_choice}", value=8500 if "PWM" in ctrl_choice else 16500)
+    ctrl_name = f"{ctrl_choice} {amp_select}"
 
 # --- CALCULATION ---
-if st.button("Generate Final Report | رپورٹ تیار کریں", use_container_width=True):
+if st.button("Generate Final Report", use_container_width=True):
     normal_load = (f_p*100) + (f_a*65) + (l_l*12)
-    heavy_load = (m_hp * m_q * 746) + (fr_q * fr_w) + (ac_q * ac_w)
-    total_w = normal_load + heavy_load
+    total_w = normal_load + (m_hp * 746) + (fr_q * fr_w) + (ac_q * ac_w)
     kw = total_w / 1000
     
-    if sys_vol_choice == "Auto Select":
+    # Voltage logic
+    if sys_vol == "Auto Select":
         vol = 12 if kw <= 1.2 else (24 if kw <= 2.8 else 48)
     else:
-        vol = int(sys_vol_choice.split('V')[0])
+        vol = int(sys_vol.split('V')[0])
     
     n_b = vol // 12
     n_p = math.ceil((total_w * 1.30) / p_w)
     
-    # Recommendation for Amps
-    # Formula: (Total Watts / Battery Volts) + Safety Margin
-    rec_amps = math.ceil((n_p * p_w) / vol)
-    
-    usable_storage = (b_ah * vol * 0.8)
-    backup_light = usable_storage / normal_load if normal_load > 0 else 0
-    
-    # Results Display
-    st.markdown(f"### 📊 Total Load Assessment: {int(total_w)}W ({kw:.2f} kW)")
-    
-    # Show Recommendation if using Simple Inverter
+    # AMPS LOGIC (Series vs Parallel)
+    plate_amps = 11.0  # Standard 585W plate approx amps
     if "Car" in inv_type:
-        st.warning(f"💡 **Recommended Charger Amps:** Minimum **{rec_amps}A** (آپ کے پاس {n_p} پلیٹیں ہیں)")
+        if conn_type == "Parallel (High Amps)":
+            total_amps = n_p * plate_amps
+        else: # Series
+            total_amps = plate_amps # Amps stay same in series, volts increase
+        
+        # Recommended Amps calculation (Safety margin added)
+        rec_amps = math.ceil(total_amps * 1.2)
+    
+    # Backup
+    usable_storage = (b_ah * vol * 0.8)
+    backup_h = usable_storage / normal_load if normal_load > 0 else 0
+    
+    # Result Display
+    st.markdown(f"### 📊 Assessment: {int(total_w)}W ({kw:.2f} kW)")
+    
+    if "Car" in inv_type:
+        st.warning(f"⚙️ **{conn_type} Connection:** Required Controller Amps: **{rec_amps}A**")
+        st.caption(f"(Calculated based on {n_p} plates of {p_w}W each)")
 
     r1, r2 = st.columns(2)
     with r1:
         st.info(f"**Inverter:** Rs. {inv_price:,.0f}")
         if ctrl_price > 0:
-            st.warning(f"**Charger:** {ctrl_name}\n\nRs. {ctrl_price:,.0f}")
-        st.success(f"**Plates ({n_p} Nos):** Rs. {n_p * p_r:,.0f}")
+            st.warning(f"**{ctrl_name}:** Rs. {ctrl_price:,.0f}")
+        st.success(f"**Solar Plates:** {n_p} Nos")
     with r2:
-        st.info(f"**Batteries ({n_b} Nos):** Rs. {n_b * b_r:,.0f}")
-        st.warning(f"**Night Backup:** ~{backup_light:.1f} Hours")
+        st.info(f"**Batteries:** {n_b} Nos ({vol}V)")
+        st.warning(f"**Night Backup:** ~{backup_h:.1f} Hr")
     
     st.divider()
     grand_total = (n_p * p_r) + (n_b * b_r) + inv_price + ctrl_price
-    st.error(f"## Grand Total / کل خرچہ: Rs. {grand_total:,.0f}")
+    st.error(f"## Grand Total: Rs. {grand_total:,.0f}")
 
 st.markdown("<p style='text-align: center; color: gray; font-size: 10px;'>NABA SOLUTIONS | PINCH BRAND © 2026</p>", unsafe_allow_html=True)
