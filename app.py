@@ -44,7 +44,7 @@ with col4:
 
 # --- CALCULATION LOGIC ---
 if st.button("Generate Report | رپورٹ تیار کریں", use_container_width=True):
-    # Logic
+    # Base Loads
     motor_load = (m_hp * m_q * 746)
     fridge_load = (fr_q * fr_w)
     ac_load = (ac_q * ac_w)
@@ -53,15 +53,27 @@ if st.button("Generate Report | رپورٹ تیار کریں", use_container_wid
     total_w = fans_bulbs_load + fridge_load + ac_load + motor_load
     kw = total_w / 1000
     
+    # Inverter Logic
+    if kw <= 1.2:
+        s_kw, vol, n_b, conn = 1.5, 12, 1, "Single Battery (12V)"
+    elif kw <= 2.8:
+        s_kw, vol, n_b, conn = 3, 24, 2, "1 String (2 Series - 24V)"
+    elif kw <= 5.5:
+        s_kw, vol, n_b, conn = 6, 48, 4, "1 String (4 Series - 48V)"
+    else:
+        s_kw, vol, n_b, conn = math.ceil(kw + 2), 48, 8, "2 Strings (Parallel - 48V)"
+    
     n_p = math.ceil((total_w * 1.30) / p_w)
-    s_kw = math.ceil(kw + 1.5)
     
-    if s_kw <= 3: n_b, vol, conn = 2, 24, "1 String (2 Series)"
-    elif s_kw <= 6: n_b, vol, conn = 4, 48, "1 String (4 Series)"
-    else: n_b, vol, conn = 8, 48, "2 Strings (Parallel)"
+    # Backup Logic
+    usable_storage = (b_ah * vol * 0.8) # 80% Depth of discharge
     
-    night_load = fans_bulbs_load + (fr_q * (fr_w * 0.6))
-    hours = (b_ah * vol * 0.8) / night_load if night_load > 0 else 0
+    # Option 1: Light Load (Only Fans/Bulbs)
+    backup_light = usable_storage / fans_bulbs_load if fans_bulbs_load > 0 else 0
+    
+    # Option 2: Heavy Load (Fans + Fridge + AC) - Motor typically excluded at night
+    heavy_night_load = fans_bulbs_load + (fr_q * (fr_w * 0.5)) + (ac_q * (ac_w * 0.6)) 
+    backup_heavy = usable_storage / heavy_night_load if heavy_night_load > 0 else 0
     
     # Results Display
     st.markdown(f"### 📊 Total Load | کل لوڈ: {int(total_w)}W ({kw:.2f} kW)")
@@ -75,7 +87,16 @@ if st.button("Generate Report | رپورٹ تیار کریں", use_container_wid
         st.info(f"**Batteries / بیٹریاں:**\n{n_b} Nos | {conn}")
         st.success(f"**Battery Cost / قیمت:**\nRs. {n_b * b_r:,.0f}")
     
-    st.warning(f"**Night Backup / بیک اپ:** {hours:.1f} Hours / گھنٹے")
+    st.divider()
+    st.subheader("🌙 Night Backup Estimation | رات کا بیک اپ")
+    
+    b_col1, b_col2 = st.columns(2)
+    with b_col1:
+        st.warning(f"**Light Load (Fans/Bulbs Only):**\n{backup_light:.1f} Hours / گھنٹے\n*(بغیر فریج اور اے سی کے)*")
+    with b_col2:
+        st.error(f"**Heavy Load (with AC/Fridge):**\n{backup_heavy:.1f} Hours / گھنٹے\n*(فریج اور اے سی کے ساتھ)*")
+        
+    st.divider()
     st.error(f"## Grand Total / کل خرچہ: Rs. {(n_p * p_r) + (n_b * b_r):,.0f}")
 
 st.markdown("<p style='text-align: center; color: gray; font-size: 10px;'>NABA SOLUTIONS | PINCH BRAND © 2026</p>", unsafe_allow_html=True)
